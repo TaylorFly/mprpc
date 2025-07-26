@@ -6,11 +6,13 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 #include <netinet/in.h>
+#include <string>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 
 #include "mprpcapplication.hpp"
+#include "zookeeperutil.hpp"
 
 void MprpcChannel::CallMethod
                          (const google::protobuf::MethodDescriptor* method,
@@ -65,8 +67,21 @@ void MprpcChannel::CallMethod
         exit(EXIT_FAILURE);
     }
 
-    std::string ip = MprpcApplication::getInstance().getConfig().load("rpcserverip");
-    uint16_t port = std::stoi(MprpcApplication::getInstance().getConfig().load("rpcserverport"));
+    // std::string ip = MprpcApplication::getInstance().getConfig().load("rpcserverip");
+    // uint16_t port = std::stoi(MprpcApplication::getInstance().getConfig().load("rpcserverport"));
+
+    ZkClient zkCli;
+    zkCli.Start();
+    std::string method_path = "/" + service_name + "/" + method_name;
+    std::string hostData = zkCli.GetData(method_path.c_str());
+    int idx = hostData.find(":");
+    if (idx == -1) {
+        controller->SetFailed(method_path + " is invalid");
+        return ;
+    }
+
+    std::string ip = hostData.substr(0, idx);
+    uint16_t port = std::stoi(hostData.substr(idx + 1, hostData.size() - idx - 1));
     
     sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));

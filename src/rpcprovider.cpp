@@ -12,7 +12,7 @@
 #include <muduo/net/TcpServer.h>
 #include <string>
 #include <functional>
-
+#include "zookeeperutil.hpp"
 
 void RpcProvider::notifyService(google::protobuf::Service *service) {
     ServiceInfo info;
@@ -46,6 +46,20 @@ void RpcProvider::Run() {
     server->setThreadNum(4);
     server->setConnectionCallback(std::bind(&RpcProvider::onConnection, this, std::placeholders::_1));
     server->setMessageCallback(std::bind(&RpcProvider::onMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+    ZkClient zkCli;
+    zkCli.Start();
+    for (auto &sp: m_serviceMap) {
+        std::string service_path = "/" + sp.first;
+        zkCli.Create(service_path.c_str(), nullptr, 0);
+        for (auto &mp: sp.second.m_methodMap) {
+            std::string method_path = service_path + "/" + mp.first;
+            char method_path_data[128] = {0};
+            sprintf(method_path_data, "%s:%d", ip.c_str(), port);
+            // 临时性节点
+            zkCli.Create(method_path.c_str(), method_path_data, strlen(method_path_data), ZOO_EPHEMERAL);
+        }
+    }
 
     std::cout << "RPC start service at ip: " << ip << ", port: " << port << "\n";
 

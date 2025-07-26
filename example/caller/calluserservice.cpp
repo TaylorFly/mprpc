@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[]) {
     MprpcApplication::init(argc, argv);
-
+    
     // 调用远程发布的rpc方法login
     fixbug::UserServiceRpc_Stub stub(new MprpcChannel());
     fixbug::LoginReq request;

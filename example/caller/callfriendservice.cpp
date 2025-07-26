@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     MprpcApplication::init(argc, argv);
     
     MprpcController controller;
-
+    
     fixbug::FriendServiceRpc_Stub stub(new MprpcChannel());
     fixbug::GetFriendListsReq req;
     req.set_userid(1000);
